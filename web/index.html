@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HTML 发布服务</title>
+  <style>
+    :root { color-scheme: light; --ink:#15243b; --muted:#61718a; --line:#dce4ee; --blue:#245ed6; --bg:#f4f7fb; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    main { max-width:900px; margin:44px auto 80px; padding:0 20px; }
+    h1 { margin:0 0 6px; font-size:30px; letter-spacing:-.03em; }
+    h2 { margin:0 0 16px; font-size:19px; }
+    p { margin:0 0 14px; }
+    .sub { color:var(--muted); margin-bottom:24px; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:16px; box-shadow:0 8px 24px #20345508; padding:24px; margin:16px 0; }
+    .eyebrow { color:var(--blue); font-size:12px; font-weight:700; letter-spacing:.1em; margin:0 0 6px; }
+    label { display:block; font-weight:650; margin:16px 0 6px; }
+    input[type=text],input[type=password] { width:100%; border:1px solid #c9d5e4; border-radius:9px; padding:11px 12px; font:inherit; color:var(--ink); background:#fff; }
+    input:focus { outline:2px solid #9dbaf7; border-color:var(--blue); }
+    input[type=file] { width:100%; padding:12px; border:1px dashed #9eb2ce; border-radius:9px; background:#f8fbff; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+    button { border:0; border-radius:9px; background:var(--blue); color:#fff; padding:11px 17px; font:inherit; font-weight:700; cursor:pointer; }
+    button:disabled { opacity:.5; cursor:not-allowed; }
+    button.secondary { background:#e8effb; color:#184dba; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .hint { color:var(--muted); font-size:13px; }
+    .warn { background:#fff7e8; border:1px solid #f1d7a9; padding:12px 14px; border-radius:9px; margin:12px 0; }
+    .error { background:#fff0f1; color:#a62937; border:1px solid #f2c5cb; padding:12px 14px; border-radius:9px; margin:12px 0; }
+    .success { background:#ebf8ef; color:#17613b; border:1px solid #b5e1c4; padding:12px 14px; border-radius:9px; margin:12px 0; }
+    .url { display:block; overflow-wrap:anywhere; color:var(--blue); font-weight:650; }
+    .files { max-height:210px; overflow:auto; margin:12px 0; padding:0; list-style:none; border:1px solid var(--line); border-radius:9px; }
+    .files li { padding:7px 12px; border-bottom:1px solid var(--line); font-family:ui-monospace,SFMono-Regular,monospace; font-size:12px; overflow-wrap:anywhere; }
+    .files li:last-child { border-bottom:0; }
+    .check { display:flex; gap:10px; align-items:flex-start; font-weight:500; }
+    .check input { margin-top:5px; }
+    a { color:var(--blue); }
+    [hidden] { display:none !important; }
+    @media(max-width:650px) { main{margin-top:24px}.grid{grid-template-columns:1fr}.card{padding:18px}h1{font-size:25px} }
+  </style>
+</head>
+<body>
+<main>
+  <h1>HTML 发布服务</h1>
+  <p class="sub">选本机文件，审阅清单，再发布到公开网址。支持单个 HTML 或含 CSS、JS、图片的静态目录。</p>
+
+  <section class="card" aria-labelledby="connect-title">
+    <p class="eyebrow">01 · 连接</p>
+    <h2 id="connect-title">连接 GitHub</h2>
+    <p>目标仓库：<a href="https://github.com/jamiepak/html-publish-hub" target="_blank" rel="noopener">jamiepak/html-publish-hub</a></p>
+    <p id="connection" class="hint">尚未连接。Token 仅存在这个本机服务的进程内存中，关闭后清除。</p>
+    <label for="token">GitHub 细粒度 Token</label>
+    <input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="粘贴仅授权此仓库 Contents 读写的 Token">
+    <p class="hint">在 GitHub 创建细粒度 Token，仓库只选 html-publish-hub，Contents 设为 Read and write。不要把 Token 发到聊天里。</p>
+    <button id="connect" type="button">连接仓库</button>
+  </section>
+
+  <section class="card" aria-labelledby="select-title">
+    <p class="eyebrow">02 · 选择</p>
+    <h2 id="select-title">选择本机页面</h2>
+    <div class="grid">
+      <div><label for="single">单个 HTML</label><input id="single" type="file" accept=".html,.htm"></div>
+      <div><label for="folder">整个静态目录</label><input id="folder" type="file" webkitdirectory multiple></div>
+    </div>
+    <p class="hint">目录根部需有 index.html。两种选择只用最后选中的一种；不会扫描其他本机文件。</p>
+    <div class="grid">
+      <div><label for="title">页面标题</label><input id="title" type="text" maxlength="100" placeholder="例如：产品演示 v1"></div>
+      <div><label for="slug">网址名</label><input id="slug" type="text" maxlength="48" placeholder="例如：product-demo"></div>
+    </div>
+    <p class="hint">同一个网址名再次发布会更新该页面。单次最多 100 个文件、总计 25 MB。</p>
+    <button id="preview" type="button">生成发布预览</button>
+  </section>
+
+  <section id="review" class="card" aria-labelledby="review-title" hidden>
+    <p class="eyebrow">03 · 审阅并发布</p>
+    <h2 id="review-title">确认公开内容</h2>
+    <p><strong id="review-name"></strong></p>
+    <a id="review-url" class="url" target="_blank" rel="noopener"></a>
+    <p id="review-count" class="hint"></p>
+    <ul id="review-files" class="files"></ul>
+    <div id="warnings"></div>
+    <label class="check"><input id="confirm" type="checkbox"><span>我已检查以上文件，确认它们可以公开给任何访问此网址的人。</span></label>
+    <div class="row"><button id="publish" type="button" disabled>发布到 GitHub Pages</button><span id="busy" class="hint"></span></div>
+  </section>
+
+  <section id="result" class="card" aria-labelledby="result-title" hidden>
+    <p class="eyebrow">04 · 验证</p>
+    <h2 id="result-title">已提交，等待部署</h2>
+    <p>GitHub Pages 通常需要稍等片刻。点击检查，只有线上入口文件与本次提交一致才显示“已上线”。</p>
+    <a id="live-url" class="url" target="_blank" rel="noopener"></a>
+    <p id="deploy-state" class="hint"></p>
+    <button id="check" type="button" class="secondary">检查公网部署</button>
+  </section>
+  <div id="message" role="status" aria-live="polite"></div>
+</main>
+<script>
+(() => {
+  const csrf = '__CSRF__';
+  const $ = id => document.getElementById(id);
+  let kind = '', stage = null, published = null;
+  const msg = (value, bad=false) => { $('message').className = bad ? 'error' : 'success'; $('message').textContent = value; };
+  const request = async (path, body, multipart=false) => {
+    const response = await fetch(path, {method:'POST', headers: {'X-Publish-Session':csrf, ...(multipart ? {} : {'Content-Type':'application/json'})}, body: multipart ? body : JSON.stringify(body)});
+    const value = await response.json();
+    if (!response.ok) throw new Error(value.error || '请求失败');
+    return value;
+  };
+  $('single').addEventListener('change', () => { kind='file'; $('folder').value=''; $('review').hidden=true; });
+  $('folder').addEventListener('change', () => { kind='folder'; $('single').value=''; $('review').hidden=true; });
+  $('confirm').addEventListener('change', () => { $('publish').disabled = !$('confirm').checked; });
+  $('connect').addEventListener('click', async () => {
+    try {
+      $('connect').disabled = true;
+      const value = await request('/api/connect', {token:$('token').value});
+      $('token').value = '';
+      $('connection').textContent = '已连接：' + value.repo + '。凭证仅在本机服务运行期间有效。';
+      msg('GitHub 已连接。');
+    } catch (error) { msg(error.message, true); }
+    finally { $('connect').disabled = false; }
+  });
+  $('preview').addEventListener('click', async () => {
+    try {
+      $('preview').disabled = true;
+      const selected = kind === 'file' ? $('single').files : $('folder').files;
+      if (!selected || !selected.length) throw new Error('请先选择单个 HTML 或静态目录。');
+      const data = new FormData();
+      data.append('kind', kind);
+      data.append('title', $('title').value);
+      data.append('slug', $('slug').value);
+      for (const file of selected) data.append('files', file, kind === 'folder' ? file.webkitRelativePath : file.name);
+      stage = await request('/api/preview', data, true);
+      $('review-name').textContent = stage.title;
+      $('review-url').href = stage.url;
+      $('review-url').textContent = stage.url;
+      $('review-count').textContent = `${stage.files.length} 个文件 · ${(stage.total_bytes/1024).toFixed(1)} KB`;
+      $('review-files').replaceChildren(...stage.files.map(f => { const li=document.createElement('li'); li.textContent=`${f.path} · ${f.bytes} 字节`; return li; }));
+      $('warnings').replaceChildren(...stage.warnings.map(w => { const p=document.createElement('p'); p.className='warn'; p.textContent=w; return p; }));
+      $('confirm').checked = false;
+      $('publish').disabled = true;
+      $('review').hidden = false;
+      $('review').scrollIntoView({behavior:'smooth'});
+      msg('文件已在本机暂存。请检查文件清单，再决定是否公开。');
+    } catch (error) { msg(error.message, true); }
+    finally { $('preview').disabled = false; }
+  });
+  $('publish').addEventListener('click', async () => {
+    try {
+      if (!stage || !$('confirm').checked) throw new Error('请先确认公开内容。');
+      $('publish').disabled = true;
+      $('busy').textContent = '正在提交到 GitHub…';
+      published = await request('/api/publish', {stage_id:stage.stage_id, confirm_public:true});
+      $('live-url').href = published.url;
+      $('live-url').textContent = published.url;
+      $('deploy-state').textContent = '提交成功：' + published.commit.slice(0, 12) + '。等待 GitHub Pages 更新。';
+      $('result').hidden = false;
+      $('result').scrollIntoView({behavior:'smooth'});
+      msg('文件已提交。请检查公网部署。');
+    } catch (error) { msg(error.message, true); }
+    finally { $('busy').textContent = ''; }
+  });
+  $('check').addEventListener('click', async () => {
+    try {
+      if (!published) throw new Error('还没有本次发布记录。');
+      $('check').disabled = true;
+      const params = new URLSearchParams({slug:published.slug, digest:published.digest});
+      const response = await fetch('/api/status?' + params);
+      const value = await response.json();
+      if (!response.ok) throw new Error(value.error || '检查失败');
+      $('deploy-state').textContent = value.live ? '已上线：线上入口文件与本次发布一致。' : '尚未匹配本次版本，请稍后再检查。';
+      $('deploy-state').className = value.live ? 'success' : 'hint';
+    } catch (error) { msg(error.message, true); }
+    finally { $('check').disabled = false; }
+  });
+  fetch('/api/state').then(r=>r.json()).then(s=>{ if(s.token_ready) $('connection').textContent='已连接：'+s.repo; }).catch(()=>{});
+})();
+</script>
+</body>
+</html>
